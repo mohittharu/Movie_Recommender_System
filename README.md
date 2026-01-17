@@ -4,6 +4,8 @@
 A content-based movie recommendation system built using the TMDB movie dataset.
 The system recommends movies similar to a selected movie based on plot, genres, keywords, cast, and director, and displays posters using the TMDB API through an interactive Streamlit web app.
 
+![Movie Recommender UI](assets\app_ui.png)
+
 
 🚀 Features
 
