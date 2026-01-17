@@ -1,0 +1,5 @@
+__pycache__/
+models/similarity.pkl
+compress.py
+.env
+.streamlit/secrets.toml
