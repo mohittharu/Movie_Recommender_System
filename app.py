@@ -1,128 +1,114 @@
 import streamlit as st
+import pickle
 import requests
 import time
 import os
-import pickle
 import gzip
 
-# ----------------------------
+# ----------------------------------------
 # Page Config
-# ----------------------------
-st.set_page_config(page_title="Movie Recommender", layout="wide")
+# ----------------------------------------
+st.set_page_config(page_title="Movie Recommender System", layout="wide")
 
-# ----------------------------
-# Custom CSS (Dark Theme + Navbar + Hover)
-# ----------------------------
+# ----------------------------------------
+# Custom CSS (Modern Attractive UI)
+# ----------------------------------------
 st.markdown("""
 <style>
-/* Remove Streamlit default padding */
-.block-container {
-    padding-top: 0rem !important;
-}
-
-/* Hide Streamlit footer/menu */
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
-header {visibility: hidden;}
-
-/* Background */
+/* App background */
 .stApp {
-    background-color: #0f0f0f;
+    background: linear-gradient(135deg, #0b1020, #0a0f1a);
     color: white;
 }
 
-/* Top Navbar */
-.navbar {
-    background: #000;
-    padding: 12px 18px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid #222;
-}
-.logo {
-    font-size: 28px;
-    font-weight: 800;
-    color: red;
-}
-.nav-links {
-    display: flex;
-    gap: 24px;
-    font-size: 16px;
-}
-.nav-links a {
-    text-decoration: none;
-    color: white;
-    opacity: 0.85;
-}
-.nav-links a:hover {
-    opacity: 1;
-    color: #ffcc00;
-}
-
-/* Menu bar */
-.menu-bar {
-    background: #111;
-    padding: 10px 18px;
-    display: flex;
-    gap: 18px;
-    border-bottom: 1px solid #222;
-    font-size: 15px;
-}
-.menu-item {
-    color: white;
-    opacity: 0.85;
-    cursor: pointer;
-}
-.menu-item:hover {
-    opacity: 1;
-    color: #ffcc00;
-}
-
-/* Search box right */
-.searchbox {
-    width: 280px;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #333;
-    background: #000;
-    color: white;
-}
-
-/* Section title */
-.section-title {
-    font-size: 22px;
-    font-weight: 700;
-    margin: 18px 0 12px 0;
-    border-left: 5px solid #ffcc00;
-    padding-left: 12px;
-}
-
-/* Poster cards */
-.poster-card {
+/* Center title */
+h1 {
     text-align: center;
+    font-weight: 800;
+    font-size: 42px;
+    background: -webkit-linear-gradient(#00f5d4, #00bbf9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+}
+
+/* Selectbox label */
+label {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    color: #ffffff !important;
+}
+
+/* Buttons */
+.stButton>button {
+    width: 100%;
+    background: linear-gradient(90deg, #00f5d4, #00bbf9);
+    color: black;
+    font-size: 18px;
+    font-weight: 700;
+    border: none;
+    padding: 10px;
+    border-radius: 12px;
     transition: 0.3s;
 }
-.poster-card img {
+.stButton>button:hover {
+    transform: scale(1.03);
+    background: linear-gradient(90deg, #00bbf9, #00f5d4);
+}
+
+/* Card style */
+.movie-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 12px;
+    border-radius: 18px;
+    text-align: center;
+    box-shadow: 0px 8px 22px rgba(0,0,0,0.35);
+    transition: 0.3s;
+}
+.movie-card:hover {
+    transform: translateY(-6px);
+    border: 1px solid rgba(0,245,212,0.7);
+}
+
+/* Poster */
+.movie-card img {
     width: 100%;
     border-radius: 14px;
     transition: 0.3s;
 }
-.poster-card img:hover {
-    transform: scale(1.06);
+.movie-card img:hover {
+    transform: scale(1.07);
 }
-.poster-card p {
-    margin-top: 8px;
-    font-size: 14px;
-    color: #ddd;
+
+/* Movie title */
+.movie-title {
+    margin-top: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #e8e8e8;
+}
+
+/* Subtitle */
+.subtitle {
+    text-align: center;
+    font-size: 16px;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 25px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------------------
-# Load files (your model)
-# ----------------------------
+# ----------------------------------------
+# TMDB API Key (Streamlit Secrets)
+# ----------------------------------------
+API_KEY = st.secrets.get("TMDB_API_KEY", None)
+
+# ----------------------------------------
+# Load model files
+# ----------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 movies_path = os.path.join(BASE_DIR, "models", "movies.pkl")
 similarity_path = os.path.join(BASE_DIR, "models", "similarity.pkl.gz")
 
@@ -132,37 +118,55 @@ with gzip.open(similarity_path, "rb") as f:
 
 movies_list = movies["title"].tolist()
 
-# ----------------------------
-# TMDB API Key
-# ----------------------------
-API_KEY = st.secrets.get("TMDB_API_KEY", None)
+# ----------------------------------------
+# Title
+# ----------------------------------------
+st.title("🎬 Movie Recommender System")
+st.markdown('<div class="subtitle">Find movies similar to your favourite one ✨</div>', unsafe_allow_html=True)
 
+# ----------------------------------------
+# Movie Selection Section
+# ----------------------------------------
+colA, colB = st.columns([3, 1])
+
+with colA:
+    option = st.selectbox("Select the movie 📽️", movies_list)
+
+with colB:
+    st.write("")  # spacing
+    st.write("")
+    recommend_btn = st.button("✨ Recommend")
+
+# ----------------------------------------
+# Fetch poster from TMDB
+# ----------------------------------------
 @st.cache_data
 def fetch_poster(movie_id):
     if not API_KEY:
         return "https://via.placeholder.com/300x450?text=No+API+Key"
 
     url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={API_KEY}&language=en-US"
-    r = requests.get(url)
+    response = requests.get(url)
 
-    if r.status_code != 200:
+    if response.status_code != 200:
         return "https://via.placeholder.com/300x450?text=Error"
 
-    data = r.json()
+    data = response.json()
     poster_path = data.get("poster_path")
+
     if poster_path:
         return "https://image.tmdb.org/t/p/w500" + poster_path
+    else:
+        return "https://via.placeholder.com/300x450?text=No+Image"
 
-    return "https://via.placeholder.com/300x450?text=No+Image"
-
-# ----------------------------
+# ----------------------------------------
 # Recommendation Function
-# ----------------------------
+# ----------------------------------------
 def recommend(movie):
     movie_index = movies[movies["title"] == movie].index[0]
     distances = similarity[movie_index]
 
-    movie_list = sorted(list(enumerate(distances)), reverse=True, key=lambda x: x[1])[1:11]
+    movie_list = sorted(list(enumerate(distances)), reverse=True, key=lambda x: x[1])[1:6]
 
     recommended_movies = []
     recommended_movies_posters = []
@@ -174,90 +178,25 @@ def recommend(movie):
 
     return recommended_movies, recommended_movies_posters
 
-# ----------------------------
-# Navbar UI
-# ----------------------------
-st.markdown("""
-<div class="navbar">
-    <div class="logo">HDHub4u</div>
-    <div class="nav-links">
-        <a href="#">Disclaimer</a>
-        <a href="#">How To Download?</a>
-        <a href="#">Join Our Group!</a>
-        <a href="#">Movie Request Page</a>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# Menu bar + Search box
-col1, col2 = st.columns([7, 3])
-with col1:
-    st.markdown("""
-    <div class="menu-bar">
-        <div class="menu-item">Home 🏠</div>
-        <div class="menu-item">Bollywood</div>
-        <div class="menu-item">Hollywood</div>
-        <div class="menu-item">Hindi Dubbed</div>
-        <div class="menu-item">South Hindi</div>
-        <div class="menu-item">Web Series</div>
-        <div class="menu-item">18+</div>
-        <div class="menu-item">Genres</div>
-        <div class="menu-item">More</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col2:
-    search = st.text_input("", placeholder="Search here...")
-
-# ----------------------------
-# Featured Posters (Top Strip)
-# ----------------------------
-st.markdown('<div class="section-title">🔥 Featured</div>', unsafe_allow_html=True)
-
-featured_cols = st.columns(8)
-for idx, col in enumerate(featured_cols):
-    with col:
-        movie_name = movies_list[idx]
-        movie_id = movies[movies["title"] == movie_name].iloc[0].id
-        poster = fetch_poster(movie_id)
-
-        st.markdown(f"""
-        <div class="poster-card">
-            <img src="{poster}">
-            <p>{movie_name}</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-# ----------------------------
-# Recommender Section
-# ----------------------------
-st.markdown('<div class="section-title">🎬 Movie Recommender</div>', unsafe_allow_html=True)
-
-option = st.selectbox("Select the movie 📽️", movies_list)
-
-if st.button("Recommend"):
+# ----------------------------------------
+# Recommend Output
+# ----------------------------------------
+if recommend_btn:
     with st.spinner("Fetching recommendations..."):
-        time.sleep(0.2)
+        time.sleep(0.3)
         names, posters = recommend(option)
 
-    st.markdown('<div class="section-title">✅ Recommended Movies</div>', unsafe_allow_html=True)
+    st.markdown("## ✅ Recommended Movies For You")
 
     cols = st.columns(5)
-    for col, name, poster in zip(cols, names[:5], posters[:5]):
+    for col, name, poster in zip(cols, names, posters):
         with col:
-            st.markdown(f"""
-            <div class="poster-card">
-                <img src="{poster}">
-                <p>{name}</p>
-            </div>
-            """, unsafe_allow_html=True)
-
-    cols2 = st.columns(5)
-    for col, name, poster in zip(cols2, names[5:10], posters[5:10]):
-        with col:
-            st.markdown(f"""
-            <div class="poster-card">
-                <img src="{poster}">
-                <p>{name}</p>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(
+                f"""
+                <div class="movie-card">
+                    <img src="{poster}" />
+                    <div class="movie-title">{name}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
